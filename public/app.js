@@ -34,6 +34,7 @@ const state = {
   markers: new Map(),
   installPromptEvent: null,
   inviteLink: "",
+  roomPollTimer: null,
 };
 
 const map = L.map("map", {
@@ -58,6 +59,8 @@ roomIdInput.addEventListener("input", () => {
 socket.emit("room:join", { roomId: state.roomId });
 registerAppShell();
 updateInstallHint();
+refreshRoomState();
+startRoomPolling();
 
 shareForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -96,7 +99,7 @@ shareForm.addEventListener("submit", async (event) => {
         battery,
       };
 
-      socket.emit("location:update", payload);
+      await publishLocation(payload);
       updateStatus("กำลังแชร์พิกัดแบบสด");
       updateShareHelp("หากย้ายที่ ระบบจะอัปเดตตำแหน่งล่าสุดให้อัตโนมัติ");
     },
@@ -121,18 +124,20 @@ stopSharingButton.addEventListener("click", () => {
     roomId: state.roomId,
     memberId: state.memberId,
   });
+  stopSharingFallback();
 
   updateStatus("หยุดแชร์พิกัดแล้ว");
   updateShareHelp("หากต้องการกลับมาแชร์อีกครั้ง ให้กดเริ่มแชร์พิกัดใหม่");
 });
 
-sosButton.addEventListener("click", () => {
+sosButton.addEventListener("click", async () => {
   state.isSOS = !state.isSOS;
   socket.emit("sos:update", {
     roomId: state.roomId,
     memberId: state.memberId,
     isSOS: state.isSOS,
   });
+  await updateSosFallback();
 
   sosButton.textContent = state.isSOS ? "ปิดสัญญาณ SOS" : "เปิดสัญญาณ SOS";
   updateStatus(state.isSOS ? "เปิดสัญญาณ SOS แล้ว" : "ปิดสัญญาณ SOS แล้ว");
@@ -196,18 +201,36 @@ logoutAppButton.addEventListener("click", async () => {
 });
 
 socket.on("room:state", (payload) => {
-  state.members = payload.members || [];
-  activeRoomLabel.textContent = payload.roomId;
-  roomIdInput.value = payload.roomId;
-  renderInviteTools();
-  renderMembers();
-  renderMarkers();
+  applyRoomState(payload);
+});
+
+socket.on("connect", () => {
+  socket.emit("room:join", { roomId: state.roomId });
+  refreshRoomState();
+});
+
+socket.on("connect_error", () => {
+  updateShareHelp("การเชื่อมต่อสดมีปัญหา ระบบจะดึงข้อมูลห้องซ้ำให้อัตโนมัติ");
+});
+
+socket.on("disconnect", () => {
+  updateShareHelp("การเชื่อมต่อสดหลุดชั่วคราว ระบบจะคอยรีเฟรชข้อมูลห้องให้เอง");
 });
 
 function connectToRoom() {
   socket.emit("room:join", { roomId: state.roomId });
   activeRoomLabel.textContent = state.roomId;
   renderInviteTools();
+  refreshRoomState();
+}
+
+function applyRoomState(payload) {
+  state.members = payload.members || [];
+  activeRoomLabel.textContent = payload.roomId;
+  roomIdInput.value = payload.roomId;
+  renderInviteTools();
+  renderMembers();
+  renderMarkers();
 }
 
 function renderMembers() {
@@ -325,6 +348,111 @@ function updateStatus(text) {
 
 function updateShareHelp(text) {
   shareHelp.textContent = text;
+}
+
+async function publishLocation(payload) {
+  if (socket.connected) {
+    socket.emit("location:update", payload);
+  }
+
+  try {
+    const response = await fetch(`/api/rooms/${encodeURIComponent(payload.roomId)}/location`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error("location-sync-failed");
+    }
+
+    const result = await response.json();
+    if (result.room) {
+      applyRoomState(result.room);
+    }
+  } catch (error) {
+    updateShareHelp("ส่งพิกัดขึ้นเซิร์ฟเวอร์ยังไม่ครบ ระบบจะลองดึงข้อมูลห้องซ้ำอีกครั้ง");
+  }
+}
+
+async function stopSharingFallback() {
+  try {
+    const response = await fetch(`/api/rooms/${encodeURIComponent(state.roomId)}/sharing-stop`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        memberId: state.memberId,
+      }),
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const result = await response.json();
+    if (result.room) {
+      applyRoomState(result.room);
+    }
+  } catch (error) {
+    // Ignore fallback failures here because the user can still retry sharing.
+  }
+}
+
+async function updateSosFallback() {
+  try {
+    const response = await fetch(`/api/rooms/${encodeURIComponent(state.roomId)}/sos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        memberId: state.memberId,
+        isSOS: state.isSOS,
+      }),
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const result = await response.json();
+    if (result.room) {
+      applyRoomState(result.room);
+    }
+  } catch (error) {
+    // Ignore fallback failures here because the realtime socket may still succeed.
+  }
+}
+
+async function refreshRoomState() {
+  try {
+    const response = await fetch(`/api/rooms/${encodeURIComponent(state.roomId)}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const room = await response.json();
+    applyRoomState(room);
+  } catch (error) {
+    // Ignore transient refresh issues and let the next poll retry.
+  }
+}
+
+function startRoomPolling() {
+  if (state.roomPollTimer !== null) {
+    window.clearInterval(state.roomPollTimer);
+  }
+
+  state.roomPollTimer = window.setInterval(() => {
+    refreshRoomState();
+  }, 8000);
 }
 
 function handleGeolocationError(error) {

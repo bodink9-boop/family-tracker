@@ -75,7 +75,8 @@ function readAuthConfig() {
 }
 
 function hasPasswordConfigured() {
-  return Boolean(readAuthConfig()?.passwordHash);
+  const config = readAuthConfig();
+  return Boolean(config?.passwordHash || config?.password);
 }
 
 function createPasswordHash(password) {
@@ -267,6 +268,64 @@ app.get("/app", requireAuth, (req, res) => {
 
 app.get("/api/rooms/:roomId", requireAuth, (req, res) => {
   res.json(serializeRoom(req.params.roomId));
+});
+
+app.post("/api/rooms/:roomId/location", requireAuth, (req, res) => {
+  const result = upsertMember({
+    ...req.body,
+    roomId: req.params.roomId,
+    isSharing: true,
+  });
+
+  if (!result) {
+    return res.status(400).json({ message: "Missing memberId" });
+  }
+
+  broadcastRoom(result.roomId);
+  return res.json({
+    ok: true,
+    room: serializeRoom(result.roomId),
+  });
+});
+
+app.post("/api/rooms/:roomId/sos", requireAuth, (req, res) => {
+  const roomId = normalizeRoomId(req.params.roomId);
+  const room = getRoom(roomId);
+  const member = room.members.get(req.body?.memberId);
+
+  if (!member) {
+    return res.status(404).json({ message: "Member not found" });
+  }
+
+  member.isSOS = Boolean(req.body?.isSOS);
+  member.updatedAt = new Date().toISOString();
+  room.members.set(member.memberId, member);
+  broadcastRoom(roomId);
+
+  return res.json({
+    ok: true,
+    room: serializeRoom(roomId),
+  });
+});
+
+app.post("/api/rooms/:roomId/sharing-stop", requireAuth, (req, res) => {
+  const roomId = normalizeRoomId(req.params.roomId);
+  const room = getRoom(roomId);
+  const member = room.members.get(req.body?.memberId);
+
+  if (!member) {
+    return res.status(404).json({ message: "Member not found" });
+  }
+
+  member.isSharing = false;
+  member.updatedAt = new Date().toISOString();
+  room.members.set(member.memberId, member);
+  broadcastRoom(roomId);
+
+  return res.json({
+    ok: true,
+    room: serializeRoom(roomId),
+  });
 });
 
 app.get("/api/invite-qr", requireAuth, async (req, res) => {
