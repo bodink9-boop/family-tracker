@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Family Tracker</title>
+    <meta name="theme-color" content="#d95d39" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Family Tracker" />
+    <meta
+      name="description"
+      content="แอปติดตามพิกัดคนในครอบครัวแบบติดตั้งบนมือถือได้"
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="background-glow glow-1"></div>
+    <div class="background-glow glow-2"></div>
+
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Family Safety Dashboard</p>
+          <h1>ติดตามพิกัดคนในครอบครัวแบบสดในหน้าจอเดียว</h1>
+          <p class="hero-copy">
+            ใช้ลิงก์เดียวกันให้สมาชิกเปิดจากมือถือแล้วกดแชร์พิกัด
+            จากนั้นทุกคนจะเห็นตำแหน่งล่าสุด, เวลาอัปเดต, และสัญญาณ SOS
+            บนแผนที่เดียวกันทันที
+          </p>
+        </div>
+        <div class="hero-card">
+          <div class="hero-stat">
+            <span>ห้องครอบครัว</span>
+            <strong id="active-room-label">family-home</strong>
+          </div>
+          <div class="hero-stat">
+            <span>สมาชิกที่เห็นพิกัด</span>
+            <strong id="member-count">0 คน</strong>
+          </div>
+          <button id="copy-share-link" class="secondary-button">
+            คัดลอกลิงก์แชร์ห้องนี้
+          </button>
+          <button id="install-app" class="primary-button install-button" hidden>
+            ติดตั้งแอปบนมือถือ
+          </button>
+          <button id="logout-app" class="ghost-button">
+            ออกจากระบบ
+          </button>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel panel-form">
+          <div class="panel-header">
+            <h2>ตั้งค่าการแชร์พิกัด</h2>
+            <p>แต่ละคนกรอกชื่อแล้วกดเริ่มแชร์จากมือถือของตัวเอง</p>
+          </div>
+
+          <form id="share-form" class="share-form">
+            <label>
+              รหัสห้องครอบครัว
+              <input id="room-id" name="roomId" placeholder="family-home" required />
+            </label>
+
+            <label>
+              ชื่อสมาชิก
+              <input id="member-name" name="memberName" placeholder="เช่น คุณพ่อ" required />
+            </label>
+
+            <label>
+              สีประจำตัวบนแผนที่
+              <input id="member-color" name="memberColor" type="color" value="#ff6b57" />
+            </label>
+
+            <div class="button-row">
+              <button type="submit" class="primary-button">เริ่มแชร์พิกัด</button>
+              <button type="button" id="stop-sharing" class="ghost-button">
+                หยุดแชร์
+              </button>
+            </div>
+
+            <div class="button-row">
+              <button type="button" id="toggle-sos" class="sos-button">
+                เปิดสัญญาณ SOS
+              </button>
+            </div>
+          </form>
+
+          <div class="status-card">
+            <p class="status-label">สถานะ</p>
+            <p id="share-status" class="status-value">
+              ยังไม่ได้เริ่มแชร์พิกัด
+            </p>
+            <p id="share-help" class="member-meta">
+              เมื่อกดเริ่มแชร์ ระบบจะขอสิทธิ์ตำแหน่งจากเบราว์เซอร์หรือมือถือ
+            </p>
+          </div>
+
+          <div class="status-card install-notes">
+            <p class="status-label">การติดตั้งบนมือถือ</p>
+            <p id="install-status" class="status-value">
+              ระบบกำลังตรวจสอบความพร้อมสำหรับการติดตั้งแอป
+            </p>
+          </div>
+
+          <div class="status-card qr-card">
+            <p class="status-label">เพิ่มสมาชิกด้วย QR Code</p>
+            <p class="member-meta">
+              ให้หัวหน้าครอบครัวเปิด QR นี้ แล้วให้สมาชิกใช้มือถือสแกนเพื่อเข้าห้องอัตโนมัติ
+            </p>
+            <div class="qr-preview">
+              <img id="invite-qr" alt="QR Code สำหรับเชิญสมาชิกเข้าห้อง" />
+            </div>
+            <p id="invite-link-text" class="member-meta invite-link-text">
+              ระบบกำลังสร้างลิงก์เชิญเข้าห้อง
+            </p>
+            <div class="button-row">
+              <button type="button" id="copy-invite-link" class="secondary-button">
+                คัดลอกลิงก์เชิญสมาชิก
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel panel-map">
+          <div class="panel-header">
+            <h2>แผนที่ครอบครัว</h2>
+            <p>ตำแหน่งล่าสุดของทุกคนจะขึ้นที่นี่แบบเรียลไทม์</p>
+          </div>
+          <div id="map"></div>
+        </article>
+
+        <article class="panel panel-members">
+          <div class="panel-header">
+            <h2>สมาชิกในห้อง</h2>
+            <p>กดลิงก์แผนที่เพื่อเปิดนำทางต่อใน Google Maps</p>
+          </div>
+          <div id="member-list" class="member-list"></div>
+        </article>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/app.js"></script>
+  </body>
+  </html>

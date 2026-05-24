@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: family-tracker
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false

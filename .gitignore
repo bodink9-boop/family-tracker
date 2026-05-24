@@ -1,0 +1,14 @@
+node_modules/
+data/
+.env
+.env.*
+
+# Capacitor / Android build output
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# OS / editor
+.DS_Store
+Thumbs.db

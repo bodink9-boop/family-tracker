@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>เข้าสู่ระบบ | Family Tracker</title>
+    <meta name="theme-color" content="#d95d39" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="background-glow glow-1"></div>
+    <div class="background-glow glow-2"></div>
+
+    <main class="auth-shell">
+      <section class="auth-card">
+        <p class="eyebrow">Protected Family Access</p>
+        <h1 id="auth-title">กำลังตรวจสอบระบบป้องกัน</h1>
+        <p id="auth-description" class="hero-copy">
+          กรุณารอสักครู่ ระบบกำลังเตรียมหน้าจอเข้าสู่ระบบให้
+        </p>
+
+        <form id="setup-form" class="share-form" hidden>
+          <label>
+            ตั้งรหัสผ่านใหม่
+            <input
+              id="setup-password"
+              type="password"
+              autocomplete="new-password"
+              placeholder="อย่างน้อย 6 ตัวอักษร"
+              required
+            />
+          </label>
+          <label>
+            ยืนยันรหัสผ่าน
+            <input
+              id="setup-confirm-password"
+              type="password"
+              autocomplete="new-password"
+              placeholder="พิมพ์รหัสผ่านอีกครั้ง"
+              required
+            />
+          </label>
+          <button type="submit" class="primary-button">บันทึกรหัสผ่านและเข้าแอป</button>
+        </form>
+
+        <form id="login-form" class="share-form" hidden>
+          <label>
+            รหัสผ่านเข้าแอป
+            <input
+              id="login-password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="กรอกรหัสผ่าน"
+              required
+            />
+          </label>
+          <button type="submit" class="primary-button">เข้าสู่แอป</button>
+        </form>
+
+        <div class="status-card install-notes">
+          <p class="status-label">ความปลอดภัย</p>
+          <p id="auth-status" class="status-value">
+            หลังจากตั้งรหัสผ่านแล้ว ทุกคนต้องล็อกอินก่อนเข้าใช้งาน
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/auth.js"></script>
+  </body>
+  </html>

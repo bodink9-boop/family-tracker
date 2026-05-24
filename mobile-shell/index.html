@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Family Tracker Android Shell</title>
+    <style>
+      :root {
+        --bg: #f4efe7;
+        --surface: rgba(255, 251, 246, 0.92);
+        --text: #23180f;
+        --muted: #706153;
+        --accent: #d95d39;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        font-family: "Prompt", system-ui, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 209, 165, 0.52), transparent 32%),
+          linear-gradient(180deg, #fffdf9 0%, var(--bg) 100%);
+      }
+
+      .card {
+        width: min(92vw, 520px);
+        padding: 24px;
+        border-radius: 28px;
+        background: var(--surface);
+        border: 1px solid rgba(57, 45, 33, 0.08);
+        box-shadow: 0 20px 70px rgba(80, 48, 19, 0.12);
+      }
+
+      h1 {
+        margin-top: 0;
+        line-height: 1.1;
+      }
+
+      p, li {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      code {
+        padding: 0.1rem 0.35rem;
+        border-radius: 999px;
+        background: rgba(34, 25, 17, 0.06);
+        color: var(--text);
+      }
+
+      .badge {
+        display: inline-block;
+        margin-bottom: 12px;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: #fff3e6;
+        color: #a84327;
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="badge">Android Shell Ready</div>
+      <h1>แอป Android ถูกตั้งโครงไว้แล้ว</h1>
+      <p>
+        ตอนนี้ตัวแอป Play Store ยังต้องชี้ไปหาเซิร์ฟเวอร์จริงแบบ HTTPS ก่อน
+        จึงจะเปิดระบบติดตามครอบครัวได้ครบ
+      </p>
+      <p>ขั้นต่อไปก่อน build ขึ้น Play Store:</p>
+      <ol>
+        <li>นำเว็บและเซิร์ฟเวอร์ขึ้นโฮสต์จริง เช่น <code>https://family.example.com</code></li>
+        <li>ตั้งค่า <code>CAP_SERVER_URL</code> ให้ชี้ไป URL ของระบบจริง</li>
+        <li>สั่ง sync Android project ใหม่ แล้วเปิดใน Android Studio เพื่อสร้างไฟล์ AAB</li>
+      </ol>
+    </main>
+  </body>
+  </html>
